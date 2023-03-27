@@ -1,3 +1,5 @@
+import FunctorKit
+
 public extension Parse {
     
     /// Parses an exact string.

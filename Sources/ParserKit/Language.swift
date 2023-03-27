@@ -1,3 +1,5 @@
+import FunctorKit
+
 public extension Parse {
     
     /// Skips any whitespace, discarding the value.

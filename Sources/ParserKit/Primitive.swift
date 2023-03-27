@@ -1,3 +1,5 @@
+import FunctorKit
+
 public extension Parse {
     
     /// Peeks at the next token, without consuming it.

@@ -12,11 +12,43 @@ This library provides an implementation of parser combinators, a flexible and fu
 - Example playgrounds
 - Unit tests
 
-# Quickstart
+# Importing
 
-To get started, simply import this library.
+Importing requires a little care.
+
+In package platforms, to support concurrency and async / await:
 
 ```swift
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v10_15)
+    ],
+```
+
+Note that the repository is `Swift-ParserKit`, but the package / library are just `ParserKit`.
+
+In package dependencies:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/apotheca/Swift-ParserKit", from: "0.2.0")
+],
+```
+
+In target dependencies:
+
+```swift
+dependencies: [
+    .product(name: "ParserKit", package: "Swift-ParserKit"),
+]),
+```
+
+# Quickstart
+
+To get started, simply import this library. If you want to use operators from `FunctorKit`, be sure to import that too after adding a compatible version as a dependency.
+
+```swift
+import FunctorKit
 import ParserKit
 ```
 
@@ -57,6 +89,7 @@ For more details, tutorials, and live Xcode mouseover help, be sure to build and
 
 # Future work
 
+- More built-in parsers like `word`, `integer`, `decimal/scientific`
 - `attempt` / explicit backtracking
 - Making `Input` / `State` parametric a la GParser<Input,State,Content>
 - Canonical / exported versions of CSV, Math, Json and other tutorial primitives

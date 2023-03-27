@@ -1,4 +1,5 @@
 import Foundation
+import FunctorKit
 import ParserKit
 
 extension Parse {

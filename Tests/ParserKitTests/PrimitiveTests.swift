@@ -1,4 +1,5 @@
 import XCTest
+import FunctorKit
 @testable import ParserKit
 
 final class PrimitiveTests: XCTestCase {
@@ -9,7 +10,7 @@ final class PrimitiveTests: XCTestCase {
         
         let input = "abc"
         let p = Parse.peekToken
-        switch p.runParser((.zero,input)) {
+        switch try! p.runParser((.zero,input)) {
         case let .failure(e):
             XCTFail("Failed to parse: \(e)")
         case let .success((peek, (_,remainingInput))):

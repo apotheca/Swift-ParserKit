@@ -1,4 +1,5 @@
 import XCTest
+import FunctorKit
 @testable import ParserKit
 
 final class CombinatorTests: XCTestCase {

@@ -5,16 +5,24 @@ import PackageDescription
 
 let package = Package(
     name: "ParserKit",
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v10_15)
+    ],
     products: [
         .library(
             name: "ParserKit",
             targets: ["ParserKit"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/apotheca/Swift-FunctorKit", from: "0.1.0")
+    ],
     targets: [
         .target(
             name: "ParserKit",
-            dependencies: []),
+            dependencies: [
+                .product(name: "FunctorKit", package: "Swift-FunctorKit"),
+            ]),
         .testTarget(
             name: "ParserKitTests",
             dependencies: ["ParserKit"]),

@@ -1,4 +1,5 @@
 import Foundation
+import FunctorKit
 
 // TODO: ParserInput streams
 //public enum ParserInput<Token> {
@@ -125,7 +126,7 @@ public enum ParserResult<Content> {
 /// The core of the ``ParserKit`` library.
 ///
 /// This struct is a strongly-typed wrapper around `(State) -> Result<(Content,State)>`, and it contains all of the functions necessary for composing larger parsers out of smaller parser combinators.
-public struct Parser<Content> {
+public struct Parser<Content>: Functor {
     
     public typealias Input = ParserInput
     public typealias Token = Input.Element
@@ -135,7 +136,7 @@ public struct Parser<Content> {
     public typealias Result = ParserResult
     
     /// The core of ``Parser`` is a simple function that takes input, and produces a value plus the remaining input, unless it fails with an error.
-    public let runParser: (State) -> Result<(Content,State)>
+    public let runParser: (State) throws -> Result<(Content,State)>
     
     /// Creates a new parser from the given value, lazily with an autoclosure.
     ///
@@ -161,7 +162,7 @@ public struct Parser<Content> {
     ///     - fn: The raw parser state function.
     ///
     /// - Returns: A parser that continues from the provided state..
-    private init(fn: @escaping (State) -> Result<(Content,State)>) {
+    private init(fn: @escaping (State) throws -> Result<(Content,State)>) {
         self.runParser = fn
     }
     
@@ -173,7 +174,7 @@ public struct Parser<Content> {
     ///     - fn: The raw parser state function.
     ///
     /// - Returns: A parser that continues from the provided state..
-    public static func raw(_ fn: @escaping (State) -> Result<(Content,State)>) -> Self {
+    public static func raw(_ fn: @escaping (State) throws -> Result<(Content,State)>) -> Self {
         return self.init(fn: fn)
     }
     
@@ -202,7 +203,7 @@ public struct Parser<Content> {
     ///
     /// - Returns: The fully parsed value..
     public func parse(_ input: String = "") throws -> Content {
-        switch runParser((Cursor.zero,input)) {
+        switch try runParser((Cursor.zero,input)) {
         case let .failure(e):
             throw e
         case let .success((_, (_,input))) where !input.isEmpty:
@@ -224,8 +225,10 @@ public struct Parser<Content> {
     /// - Returns: The recursive parser.
     public static func fix(_ fn: @escaping (Self) -> Self) -> Self {
         var p: Self!
+        // NOTE: This calls the private state-function intializer
+        // TODO: Replace with Parser.raw? Or leave this note?
         let lazy = Self { st in
-            return p.runParser(st)
+            return try p.runParser(st)
         }
         p = fn(lazy)
         return p
@@ -243,16 +246,20 @@ public struct Parser<Content> {
     ///     - fn: A function that transforms the content of the parser.
     ///
     /// - Returns: The transformed parser.
-    public func map<A>(_ fn: @escaping (Content) -> A) -> Parser<A> {
+    public func map<A>(_ fn: @escaping (Content) throws -> A) rethrows -> Parser<A> {
         return Parser<A> { st in
-            let result = runParser(st)
+            let result = try runParser(st)
             switch result {
             case let .failure(e):
                 return .failure(e)
             case let .success((a,st2)):
-                return .success((fn(a),st2))
+                return try .success((fn(a),st2))
             }
         }
+    }
+    
+    public func fmap<A>(_ fn: @escaping (Content) throws -> A) rethrows -> Parser<A> {
+        try map(fn)
     }
     
     public func constMap<A>(_ const: A) -> Parser<A> {
@@ -303,11 +310,11 @@ public struct Parser<Content> {
     /// - Returns: A parser applying the result of arg to the contained function.
     public func ap<X,Y>(_ arg: Parser<X>) -> Parser<Y> where Content == ((X) -> Y) {
         return Parser<Y> { (st) in
-            switch runParser(st) {
+            switch try runParser(st) {
             case let .failure(e):
                 return .failure(e)
             case let .success((f,st2)):
-                switch arg.runParser(st2) {
+                switch try arg.runParser(st2) {
                 case let .failure(e):
                     return .failure(e)
                 case let .success((a,st3)):
@@ -324,7 +331,7 @@ public struct Parser<Content> {
     ///
     /// - Returns: A parser that returns the value of the first parser..
     public func constAp<B> (_ q: Parser<B>) -> Parser<Content> {
-        return self.map { x in { _ in x } } .ap(q)
+        map { x in { _ in x } } .ap(q)
     }
     
     
@@ -335,7 +342,7 @@ public struct Parser<Content> {
     ///
     /// - Returns: A parser that returns the value of q.
     public func skipAp<B> (_ q: Parser<B>) -> Parser<B> {
-        return self.map { _ in { y in y } } .ap(q)
+        map { _ in { y in y } } .ap(q)
     }
     
     // Monad
@@ -369,11 +376,11 @@ public struct Parser<Content> {
     /// - Returns: A parser applying the result of this parser to fn.
     public func bind<B>(_ fn: @escaping (Content) -> Parser<B>) -> Parser<B> {
         return Parser<B> { (st) in
-            switch runParser(st) {
+            switch try runParser(st) {
             case let .failure(e):
                 return .failure(e)
             case let .success((a,st2)):
-                return fn(a).runParser(st2)
+                return try fn(a).runParser(st2)
             }
         }
     }
@@ -395,9 +402,9 @@ public struct Parser<Content> {
     /// - Returns: A parser that tries both parsers before failing.
     public func alt(_ alt: Parser<Content>) -> Parser<Content> {
         return Parser { (st) in
-            switch runParser(st) {
+            switch try runParser(st) {
             case .failure(_):
-                return alt.runParser(st)
+                return try alt.runParser(st)
             case let right:
                 return right
             }
@@ -420,11 +427,11 @@ public struct Parser<Content> {
     /// - Returns: A parser that produces a list of zero or more values.
     public var many: Parser<[Content]> {
         return Parser<[Content]> { st in
-            switch self.runParser(st) {
+            switch try self.runParser(st) {
             case .failure(_):
-                return Parser<[Content]>.pure([]).runParser(st)
+                return try Parser<[Content]>.pure([]).runParser(st)
             case let .success((x,st2)):
-                return (self.many.map { xs in [x] + xs }).runParser(st2)
+                return try (self.many.map { xs in [x] + xs }).runParser(st2)
             }
         }
     }
@@ -507,7 +514,7 @@ public struct Parser<Content> {
     /// - Returns: A parser that renames the expected input when there is an error.
     public func label(_ s: String) -> Parser<Content> {
         return Parser<Content> { st in
-            switch self.runParser(st) {
+            switch try self.runParser(st) {
             case .failure:
                 return .failure(ParserFailure(cursor: st.0, error: .expected(s)))
             case let .success(s):

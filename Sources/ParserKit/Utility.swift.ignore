@@ -20,3 +20,22 @@ public func curry3<A,B,C,D>(_ fn: @escaping (A,B,C) -> D) -> ((A) -> ((B) -> ((C
 public func uncurry3<A,B,C,D>(_ fn: @escaping (A) -> ((B) -> ((C) -> D))) -> ((A,B,C) -> D) {
     return { (a,b,c) in fn(a)(b)(c) }
 }
+
+public func curry4<A,B,C,D,E>(_ fn: @escaping (A,B,C,D) -> E) -> (A) -> (B) -> (C) -> (D) -> E {
+    return { a in { b in { c in { d in fn(a,b,c,d) } } } }
+}
+public func uncurry4<A,B,C,D,E>(_ fn: @escaping (A) -> (B) -> (C) -> (D) -> E) -> (A,B,C,D) -> E {
+    return { (a,b,c,d) in fn(a)(b)(c)(d) }
+}
+
+extension Array where Element == String {
+    var unwords: String {
+        return joined(separator: " ")
+    }
+}
+
+extension String {
+    var words: [String] {
+        return split(separator: " ").map { String($0) }
+    }
+}

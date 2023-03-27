@@ -1,5 +1,7 @@
 import Foundation
+import FunctorKit
 
+/*
 // In Haskell:
 //  infixl 4 <$>, <$, $>
 //  infixl 4 <*>, <*, *>
@@ -68,39 +70,43 @@ public extension Dictionary {
     
 }
 
+*/
+
 /// An infix operator for ``Parser/map(_:)``
 public func <^><A,B>(fn: @escaping (A) -> B, p: Parser<A>) -> Parser<B> {
-    return p.map(fn)
+    p.map(fn)
 }
 
 /// A convenient alias for ``Parser/constMap(_:)``
 public func <^<A,B>(const: A, p: Parser<B>) -> Parser<A> {
-    return p.constMap(const)
+    p.constMap(const)
 }
 
 /// A convenient alias for ``Parser/constMap(_:)``
 public func ^><A,B>(p: Parser<A>, const: B) -> Parser<B> {
-    return p.constMap(const)
+    p.constMap(const)
 }
 
 /// An infix operator for ``Parser/ap(_:)``
 public func <*><A,B> (p: Parser<(A) -> B>, q:  Parser<A>) -> Parser<B> {
-    return p.ap(q)
+    p.ap(q)
 }
 
 /// An infix operator for ``Parser/constAp(_:)``
 public func <*<A,B> (p: Parser<A>, q: Parser<B>) -> Parser<A> {
-    return ({ x in { _ in x }} <^> p) <*> q
+    ({ x in { _ in x }} <^> p) <*> q
 }
 
 /// An infix operator for ``Parser/skipAp(_:)``
 public func *><A,B> (p: Parser<A>, q: Parser<B>) -> Parser<B> {
-    return ({ _ in { y in y }} <^> p) <*> q
+    //({ _ in { y in y }} <^> p) <*> q
+    // Equivalently
+    p.bind { _ in q }
 }
 
 /// An infix operator for ``Parser/alt(_:)``
 public func <|><A>(p: Parser<A>, q: Parser<A>) -> Parser<A> {
-    return p.alt(q)
+    p.alt(q)
 }
 
 /// An infix operator for ``Parser/bind(_:)``
@@ -111,7 +117,9 @@ public func >>-<A,B> (p: Parser<A>, q: @escaping (A) -> Parser<B>) -> Parser<B> 
 /// An infix operator for ``Parser/bind(_:)`` that discards the result of the first parser.
 ///
 /// Note the relationship to ``*>``, which is derived from ``Parser/ap(_:)`` compared to `>>`, which is derived from ``Parser/bind(_:)``.
-public func >><A,B> (p: Parser<A>, q: Parser<B>) -> Parser<B> {
+///
+/// This is mostly here for conformance; ``*>`` may be used instead.
+public func >>|<A,B> (p: Parser<A>, q: Parser<B>) -> Parser<B> {
     p.bind { _ in q }
 }
 
@@ -122,5 +130,5 @@ public func -<<<A,B> (p: @escaping (B) -> Parser<A>, q: Parser<B>) -> Parser<A> 
 
 /// An infix operator for ``Parser/label(_:)``
 public func <?><A>(p: Parser<A>, s: String) -> Parser<A> {
-    return p.label(s)
+    p.label(s)
 }
