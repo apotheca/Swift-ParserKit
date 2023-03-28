@@ -25,6 +25,9 @@ let package = Package(
             ]),
         .testTarget(
             name: "ParserKitTests",
-            dependencies: ["ParserKit"]),
+            dependencies: [
+                .product(name: "FunctorKit", package: "Swift-FunctorKit"),
+                "ParserKit"
+            ]),
     ]
 )
